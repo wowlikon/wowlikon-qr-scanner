@@ -1,0 +1,48 @@
+<MyLayout>:
+    orientation: 'vertical'
+    padding: 0
+    spacing: 0
+    size: root.width, root.height
+
+    Label:
+        size_hint: 1, None
+        pos_hint: 0, 0
+        text_size: self.width, None
+        font_size: self.height * 0.5
+        text: {err}
+    
+    AndroidCamera:
+        index: 0
+        id: a_cam
+        size_hint: 0, 0
+        resolution: self.camera_resolution
+        allow_stretch: True
+        play: True
+        disabled: True
+        opacity: 0
+        canvas.before:
+            PushMatrix
+            Rotate:
+                angle: -90
+                origin: self.center
+            Scale:
+                x: self.cam_ratio
+                y: self.cam_ratio
+                origin: self.center
+        canvas.after:
+            PopMatrix
+       
+    Label:
+        size_hint: 0, 0
+        id: text_out
+        font_size: self.height * 0.1
+        disabled: True
+        opacity: 0
+        text: ''
+    Label:
+        size_hint: 0, 0
+        id: fps_text
+        font_size: self.height * 0.1
+        disabled: True
+        opacity: 0
+        text: ''
