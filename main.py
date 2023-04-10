@@ -9,8 +9,9 @@ from kivy.app import App
 import numpy as np
 
 if platform == "android":
-     from android.permissions import request_permissions, Permission
-     request_permissions([Permission.CAMERA, Permission.INTERNET])
+    from android.permissions import check_permission, request_permissions, Permission
+    request_permissions([Permission.CAMERA, Permission.INTERNET])
+    while not check_permission(Permission.CAMERA): time.sleep(0.1)
 
 try: Builder.load_file('ui.kv')
 except Exception:
