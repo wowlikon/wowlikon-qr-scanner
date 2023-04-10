@@ -1,12 +1,16 @@
 #usr/bin/python3 
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.camera import Camera
-from kivy.uix.label import Label
+from kivy.utils import platform
 from kivy.lang import Builder
 from kivy.clock import Clock
 import cv2, time, traceback
 from kivy.app import App
 import numpy as np
+
+if platform == "android":
+     from android.permissions import request_permissions, Permission
+     request_permissions([Permission.CAMERA, Permission.INTERNET])
 
 try: Builder.load_file('ui.kv')
 except Exception:
@@ -43,7 +47,7 @@ class MyApp(App):
             gray = cv2.cvtColor(frame, cv2.COLOR_RGBA2GRAY)
             text, points, _ = self.d.detectAndDecode(gray)
             self.root.ids.fps_text.text = f'FPS: {(1/self.period):.2f}'
-            self.root.ids.text_out.text = f'Text: {text if text else "404"}'
+            self.root.ids.text_out.text = f'Text {(": "+text) if text else "not found"}'
             self.root.ids.fps_text.font_size = self.root.height//(10 * len(self.root.ids.fps_text.text)) * 2
             self.root.ids.text_out.font_size = self.root.height//(10 * len(self.root.ids.text_out.text)) * 8 + 2
             Clock.schedule_once(self.get_frame, 0.25)
