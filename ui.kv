@@ -40,8 +40,10 @@
                 padding_x: 20
                 padding_y: 0
        
-        Label:
+        Button:
             size_hint: 1, 0.2
             id: text_out
             font_size: self.height * 0.1
             text: ''
+            on_release:
+                self.interact()

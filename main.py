@@ -1,17 +1,41 @@
 #usr/bin/python3 
+from kivy.core.clipboard import Clipboard
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.camera import Camera
 from kivy.utils import platform
+import cv2, time, traceback, re
 from kivy.lang import Builder
 from kivy.clock import Clock
-import cv2, time, traceback
 from kivy.app import App
 import numpy as np
 
-if platform == "android":
+if platform == "android": #buildozer android debug deploy run logcat (run with adb logcat)
     from android.permissions import check_permission, request_permissions, Permission
     request_permissions([Permission.CAMERA, Permission.INTERNET])
     while not check_permission(Permission.CAMERA): time.sleep(0.1)
+
+def launch_webbrowser(url):
+    import webbrowser
+    if platform == 'android':
+        from jnius import autoclass, cast
+        def open_url(url):
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            activity = PythonActivity.mActivity
+            Intent = autoclass('android.content.Intent')
+            Uri = autoclass('android.net.Uri')
+            browserIntent = Intent()
+            browserIntent.setAction(Intent.ACTION_VIEW)
+            browserIntent.setData(Uri.parse(url))
+            currentActivity = cast('android.app.Activity', activity)
+            currentActivity.startActivity(browserIntent)
+
+        # Web browser support.
+        class AndroidBrowser(object):
+            def open(self, url, new=0, autoraise=True): open_url(url)
+            def open_new(self, url): open_url(url)
+            def open_new_tab(self, url): open_url(url)
+        webbrowser.register('android', AndroidBrowser)
+    webbrowser.open(url)
 
 try: Builder.load_file('ui.kv')
 except Exception:
@@ -35,6 +59,13 @@ class MyApp(App):
     def build(self):
         return MyLayout()
 
+    def interact(self):
+        if self.res:
+            if re.search(r"[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)", self.res):
+                launch_webbrowser(self.res)
+            else:
+                Clipboard.copy(self.res)
+
     def on_start(self):
         Clock.schedule_once(self.get_frame, 5)
 
@@ -47,10 +78,16 @@ class MyApp(App):
             frame = np.frombuffer(image_object._texture.pixels, 'uint8').reshape(h, w, 4)
             gray = cv2.cvtColor(frame, cv2.COLOR_RGBA2GRAY)
             text, points, _ = self.d.detectAndDecode(gray)
+            self.res = text if text else ''
+            text = text[:50] + (text[50:] and '...')
+            self.root.ids.text_out.interact = self.interact
             self.root.ids.fps_text.text = f'FPS: {(1/self.period):.2f}'
-            self.root.ids.text_out.text = f'Text {(": "+text) if text else "not found"}'
+            if not text: self.root.ids.text_out.text = 'QR-code not found'
+            elif re.search(r"[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)", text):
+                self.root.ids.text_out.text = f'Link: {text}'
+            else: self.root.ids.text_out.text = f'Text: {text}'
             self.root.ids.fps_text.font_size = self.root.height//(10 * len(self.root.ids.fps_text.text)) * 2
-            self.root.ids.text_out.font_size = self.root.height//(10 * len(self.root.ids.text_out.text)) * 8 + 2
+            self.root.ids.text_out.font_size = self.root.height//(5  * len(self.root.ids.text_out.text)) * 4 + 2
             Clock.schedule_once(self.get_frame, 0.25)
         except Exception as exception:
             self.root.ids.fps_text.text = f'FPS: {(1/self.period):.2f}'
